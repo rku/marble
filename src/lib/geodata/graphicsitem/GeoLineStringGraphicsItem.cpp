@@ -45,6 +45,9 @@ void GeoLineStringGraphicsItem::setViewport( const ViewportParams *viewport )
             else
                 m_penWidth = float( viewport->radius() ) / EARTH_RADIUS * style()->lineStyle().physicalWidth();
         }
+        else if ( style()->lineStyle().width() != 0.0 ) {
+            m_penWidth = style()->lineStyle().width();
+        }
     }
 }
 
