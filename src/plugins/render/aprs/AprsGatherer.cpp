@@ -223,9 +223,10 @@ AprsGatherer::addObject( const QString &callSign,
     if ( m_objects->contains( callSign ) ) {
         // we already have one for this callSign; just add the new
         // history item.
-        ( *m_objects )[callSign]->setLocation( longitude, latitude,
+        foundObject = ( *m_objects )[callSign];
+        foundObject->setLocation( longitude, latitude,
                                                this_seenFrom );
-        ( *m_objects )[callSign]->setSeenFrom( this_seenFrom );
+        foundObject->setSeenFrom( this_seenFrom );
 
         // mDebug() << "  is old";
     }
@@ -238,7 +239,9 @@ AprsGatherer::addObject( const QString &callSign,
         mDebug() << "aprs:  new: " << callSign.toLocal8Bit().data();
         // foundObject->setTarget( "earth" );
     }
-    //emit repaintNeeded( QRegion() );
+
+    emit objectUpdated( foundObject );
+    // emit repaintNeeded( QRegion() );
 }
 
 
