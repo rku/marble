@@ -28,7 +28,7 @@ class GeoDataIconStylePrivate
     {
     }
 
-    GeoDataIconStylePrivate( const QImage& icon, const QPointF &hotSpot )
+    GeoDataIconStylePrivate( const QPixmap& icon, const QPointF &hotSpot )
         : m_scale( 1.0 ),
           m_icon( icon ),
           m_hotSpot( hotSpot ),
@@ -43,7 +43,7 @@ class GeoDataIconStylePrivate
 
     float            m_scale;
 
-    QImage           m_icon;
+    QPixmap          m_icon;
     QString          m_iconPath;
     GeoDataHotSpot   m_hotSpot;
     mutable QPointF  m_pixelHotSpot;
@@ -60,8 +60,13 @@ GeoDataIconStyle::GeoDataIconStyle( const GeoDataIconStyle& other ) :
 {
 }
 
-GeoDataIconStyle::GeoDataIconStyle( const QImage& icon, const QPointF &hotSpot ) :
+GeoDataIconStyle::GeoDataIconStyle( const QPixmap& icon, const QPointF &hotSpot ) :
     d( new GeoDataIconStylePrivate( icon, hotSpot ) )
+{
+}
+
+GeoDataIconStyle::GeoDataIconStyle( const QImage& icon, const QPointF &hotSpot ) :
+    d( new GeoDataIconStylePrivate( QPixmap::fromImage( icon ), hotSpot ) )
 {
 }
 
@@ -82,9 +87,14 @@ const char* GeoDataIconStyle::nodeType() const
     return d->nodeType();
 }
 
-void GeoDataIconStyle::setIcon(const QImage &icon)
+void GeoDataIconStyle::setIcon(const QPixmap &icon)
 {
     d->m_icon = icon;
+}
+
+void GeoDataIconStyle::setIcon(const QImage &icon)
+{
+    d->m_icon = QPixmap::fromImage( icon );
 }
 
 void GeoDataIconStyle::setIconPath( const QString& filename )
@@ -97,16 +107,16 @@ QString GeoDataIconStyle::iconPath() const
     return d->m_iconPath;
 }
 
-QImage GeoDataIconStyle::icon() const
+QPixmap GeoDataIconStyle::icon() const
 {
     if(!d->m_icon.isNull())
         return d->m_icon;
     else if(!d->m_iconPath.isEmpty()) {
-        d->m_icon = QImage( resolvePath( d->m_iconPath ) );
+        d->m_icon = QPixmap( resolvePath( d->m_iconPath ) );
         return d->m_icon;
     }
     else
-        return QImage();
+        return QPixmap();
 }
 
 void GeoDataIconStyle::setHotSpot( const QPointF& hotSpot,

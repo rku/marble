@@ -170,7 +170,7 @@ void MarbleWidgetPopupMenu::showLmbMenu( int xpos, int ypos )
     for (; it != itEnd; ++it )
     {
         QString name = (*it)->name();
-        QPixmap icon = QPixmap::fromImage( ( *it)->style()->iconStyle().icon() );
+        QPixmap icon = ( *it)->style()->iconStyle().icon();
         m_infoDialogAction->setData( actionidx );
 
         //TODO: don't hardcode this check ?

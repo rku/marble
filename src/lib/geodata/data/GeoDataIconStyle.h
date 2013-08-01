@@ -31,6 +31,8 @@ class GEODATA_EXPORT GeoDataIconStyle : public GeoDataColorStyle
   public:
     GeoDataIconStyle();
     GeoDataIconStyle( const GeoDataIconStyle& other );
+    explicit GeoDataIconStyle( const QPixmap& icon,
+                               const QPointF &hotSpot = QPointF( 0.5, 0.5 ) );
     explicit GeoDataIconStyle( const QImage& icon,
                                const QPointF &hotSpot = QPointF( 0.5, 0.5 ) );
     ~GeoDataIconStyle();
@@ -40,8 +42,9 @@ class GEODATA_EXPORT GeoDataIconStyle : public GeoDataColorStyle
     /// Provides type information for downcasting a GeoData
     virtual const char* nodeType() const;
 
+    void setIcon( const QPixmap& icon );
     void setIcon( const QImage& icon );
-    QImage icon() const;
+    QPixmap icon() const;
 
     void setIconPath( const QString& filename );
     QString iconPath() const;

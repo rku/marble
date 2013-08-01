@@ -473,7 +473,7 @@ class GEODATA_EXPORT GeoDataFeature : public GeoDataObject
      * Note that the pixmaps are shared between all features with the
      * same visual category
      */
-    const QImage symbol() const;
+    const QPixmap symbol() const;
 
     /**
      * Return the label font of the placemark.

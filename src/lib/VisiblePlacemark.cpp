@@ -39,7 +39,7 @@ const QPixmap& VisiblePlacemark::symbolPixmap() const
 {    
     const GeoDataStyle* style = m_placemark->style();
     if ( style ) {
-        m_symbolPixmap = QPixmap::fromImage( style->iconStyle().icon() );
+        m_symbolPixmap = style->iconStyle().icon();
     } else {
         mDebug() << "Style pointer null";
     }
