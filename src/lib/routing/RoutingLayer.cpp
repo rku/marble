@@ -15,6 +15,9 @@
 #include "GeoPainter.h"
 #include "GeoSceneDocument.h"
 #include "GeoSceneHead.h"
+#include "GeoGraphicsItem.h"
+#include "GeoPointGraphicsItem.h"
+#include "GeoDataStyle.h"
 #include "MarblePlacemarkModel.h"
 #include "MarbleWidget.h"
 #include "MarbleWidgetPopupMenu.h"
@@ -54,6 +57,30 @@ class RoutingLayerPrivate
 
     typedef PaintRegion<QModelIndex> ModelRegion;
     typedef PaintRegion<int> RequestRegion;
+
+    // ItemHelper ensures GeoDataFeature objects are destroyed
+    // along with their coresponding GeoGraphicsItems
+    class ItemHelper
+    {
+        public:
+            ItemHelper( const QString &name,
+                        const GeoDataPoint &point,
+                        const GeoDataStyle *style )
+                : placemark( name ),
+                  graphicsItem( new GeoPointGraphicsItem( &placemark, point ) )
+            {
+                graphicsItem->setStyle( style );
+            }
+
+            ~ItemHelper()
+            {
+                delete graphicsItem->style();
+                delete graphicsItem;
+            }
+
+            GeoDataPlacemark placemark;
+            GeoGraphicsItem *graphicsItem;
+    };
 
 public:
     RoutingLayer *const q;
@@ -106,8 +133,13 @@ public:
 
     bool m_viewportChanged;
 
+    QList<ItemHelper*> m_placemarkScene;
+
     /** Constructor */
     explicit RoutingLayerPrivate( RoutingLayer *parent, MarbleWidget *widget );
+
+    /** Destructor */
+    ~RoutingLayerPrivate();
 
     /** Update the cached drag position. Use an empty point to clear it. */
     void storeDragPosition( const QPoint &position );
@@ -126,19 +158,19 @@ public:
     inline int viaInsertPosition( Qt::KeyboardModifiers modifiers ) const;
 
     /** Paint icons for each placemark in the placemark model */
-    inline void renderPlacemarks( GeoPainter *painter );
+    inline void renderPlacemarks( const ViewportParams *viewport );
 
     /** Paint waypoint polygon */
-    inline void renderRoute( GeoPainter *painter );
+    inline void renderRoute( const ViewportParams *viewport );
 
     /** Paint turn instruction for selected items */
-    inline void renderAnnotations( GeoPainter *painter );
+    inline void renderAnnotations( const ViewportParams *viewport );
 
     /** Paint alternative routes in gray */
-    inline void renderAlternativeRoutes( GeoPainter *painter );
+    inline void renderAlternativeRoutes( const ViewportParams *viewport );
 
     /** Paint icons for trip points etc */
-    inline void renderRequest( GeoPainter *painter );
+    inline void renderRequest( const ViewportParams *viewport );
 
     /** The route is dirty (needs an update) and should be painted to indicate that */
     void setRouteDirty( bool dirty );
@@ -188,6 +220,12 @@ RoutingLayerPrivate::RoutingLayerPrivate( RoutingLayer *parent, MarbleWidget *wi
 
 }
 
+RoutingLayerPrivate::~RoutingLayerPrivate()
+{
+    qDeleteAll( m_placemarkScene );
+    m_placemarkScene.clear();
+}
+
 int RoutingLayerPrivate::viaInsertPosition( Qt::KeyboardModifiers modifiers ) const
 {
     if ( modifiers & Qt::ControlModifier ) {
@@ -202,34 +240,46 @@ int RoutingLayerPrivate::viaInsertPosition( Qt::KeyboardModifiers modifiers ) co
     }
 }
 
-void RoutingLayerPrivate::renderPlacemarks( GeoPainter *painter )
+void RoutingLayerPrivate::renderPlacemarks( const ViewportParams *viewport )
 {
     m_placemarks.clear();
-    painter->setPen( QColor( Qt::black ) );
+
+    qDeleteAll( m_placemarkScene );
+    m_placemarkScene.clear();
+
     for ( int i = 0; i < m_placemarkModel->rowCount(); ++i ) {
         QModelIndex index = m_placemarkModel->index( i, 0 );
         QVariant data = index.data( MarblePlacemarkModel::CoordinateRole );
         if ( index.isValid() && !data.isNull() ) {
+
+            GeoDataStyle *style = new GeoDataStyle();
+            style->lineStyle().setColor( QColor( Qt::black ) );
+
             GeoDataCoordinates pos = qVariantValue<GeoDataCoordinates>( data );
 
             QPixmap pixmap = qVariantValue<QPixmap>( index.data( Qt::DecorationRole ) );
             if ( !pixmap.isNull() && m_selectionModel->isSelected( index ) ) {
                 QIcon selected = QIcon( pixmap );
                 QPixmap result = selected.pixmap( m_pixmapSize, QIcon::Selected, QIcon::On );
-                painter->drawPixmap( pos, result );
+                style->iconStyle().setIcon( result );
             } else {
-                painter->drawPixmap( pos, pixmap );
+                style->iconStyle().setIcon( pixmap );
             }
 
-            QRegion region = painter->regionFromRect( pos, m_targetPixmap.width(), m_targetPixmap.height() );
-            m_placemarks.push_back( ModelRegion( index, region ) );
+            ItemHelper *item = new ItemHelper( "placemark", GeoDataPoint( pos ), style );
+            item->graphicsItem->setViewport( viewport );
+            m_placemarkScene.append( item );
+
+            //QRegion region = painter->regionFromRect( pos, m_targetPixmap.width(), m_targetPixmap.height() );
+            //m_placemarks.push_back( ModelRegion( index, region ) );
         }
     }
 }
 
-void RoutingLayerPrivate::renderAlternativeRoutes( GeoPainter *painter )
+void RoutingLayerPrivate::renderAlternativeRoutes( const ViewportParams *viewport )
 {
-    QPen alternativeRoutePen( m_marbleWidget->model()->routingManager()->routeColorAlternative() );
+    // FIXME: port to graphicsitems
+    /*QPen alternativeRoutePen( m_marbleWidget->model()->routingManager()->routeColorAlternative() );
     alternativeRoutePen.setWidth( 5 );
     painter->setPen( alternativeRoutePen );
 
@@ -245,12 +295,13 @@ void RoutingLayerPrivate::renderAlternativeRoutes( GeoPainter *painter )
                 }
             }
         }
-    }
+    }*/
 }
 
-void RoutingLayerPrivate::renderRoute( GeoPainter *painter )
+void RoutingLayerPrivate::renderRoute( const ViewportParams *viewport )
 {
-    GeoDataLineString waypoints = m_routingModel->route().path();
+    // FIXME: port to graphicsitems
+    /*GeoDataLineString waypoints = m_routingModel->route().path();
 
     QPen standardRoutePen( m_marbleWidget->model()->routingManager()->routeColorStandard() );
     standardRoutePen.setWidth( 5 );
@@ -349,17 +400,18 @@ void RoutingLayerPrivate::renderRoute( GeoPainter *painter )
                 painter->drawEllipse( location, 6, 6 );
             }
         }
-    }
+    }*/
 }
 
-void RoutingLayerPrivate::renderAnnotations( GeoPainter *painter )
+void RoutingLayerPrivate::renderAnnotations( const ViewportParams *viewport )
 {
     if ( !m_selectionModel || m_selectionModel->selection().isEmpty() ) {
         // nothing to do
         return;
     }
 
-    for ( int i = 0; i < m_routingModel->rowCount(); ++i ) {
+    // FIXME: port to graphicsitems
+    /*for ( int i = 0; i < m_routingModel->rowCount(); ++i ) {
         QModelIndex index = m_routingModel->index( i, 0 );
 
         if ( m_selectionModel->selection().contains( index ) ) {
@@ -369,12 +421,13 @@ void RoutingLayerPrivate::renderAnnotations( GeoPainter *painter )
             painter->setBrush( QBrush( Oxygen::sunYellow6 ) );
             painter->drawAnnotation( pos, index.data().toString(), QSize( smallScreen ? 240 : 120, 0 ), 10, 30, 5, 5 );
         }
-    }
+    }*/
 }
 
-void RoutingLayerPrivate::renderRequest( GeoPainter *painter )
+void RoutingLayerPrivate::renderRequest( const ViewportParams *viewport )
 {
-    m_regions.clear();
+    // FIXME: port to graphicsitems
+    /*m_regions.clear();
     for ( int i = 0; i < m_routeRequest->size(); ++i ) {
         GeoDataCoordinates pos = m_routeRequest->at( i );
         if ( pos.longitude() != 0.0 && pos.latitude() != 0.0 ) {
@@ -383,7 +436,7 @@ void RoutingLayerPrivate::renderRequest( GeoPainter *painter )
             QRegion region = painter->regionFromRect( pos, pixmap.width(), pixmap.height() );
             m_regions.push_front( RequestRegion( i, region ) );
         }
-    }
+    }*/
 }
 
 void RoutingLayerPrivate::storeDragPosition( const QPoint &pos )
@@ -640,35 +693,38 @@ qreal RoutingLayer::zValue() const
 
 bool RoutingLayer::setViewport( const ViewportParams *viewport )
 {
-    Q_UNUSED( viewport )
+    if ( d->m_placemarkModel) {
+        d->renderPlacemarks( viewport );
+    }
+
+    if ( d->m_alternativeRoutesModel ) {
+        d->renderAlternativeRoutes( viewport );
+    }
+
+    d->renderRoute( viewport );
+
+    if ( d->m_routeRequest) {
+        d->renderRequest( viewport );
+    }
+
+    d->renderAnnotations( viewport );
 
     return true;
 }
 
 bool RoutingLayer::render( GeoPainter *painter, const QSize &viewportSize ) const
 {
-    Q_UNUSED( viewportSize )
+    Q_UNUSED( viewportSize );
 
     painter->save();
 
-    if ( d->m_placemarkModel) {
-        d->renderPlacemarks( painter );
+    for ( int i = d->m_placemarkScene.size() - 1; i >= 0; --i ) {
+        d->m_placemarkScene.at( i )->graphicsItem->paint( painter );
     }
-
-    if ( d->m_alternativeRoutesModel ) {
-        d->renderAlternativeRoutes( painter );
-    }
-
-    d->renderRoute( painter );
-
-    if ( d->m_routeRequest) {
-        d->renderRequest( painter );
-    }
-
-    d->renderAnnotations( painter );
 
     painter->restore();
 
+    // should this be moved to setViewport?
     if ( d->m_viewportChanged && d->m_viewContext == Still ) {
         d->m_viewportChanged = false;
     }
