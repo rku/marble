@@ -12,6 +12,7 @@ SET( graphicsview_HDRS
         graphicsview/FrameGraphicsItem.h
         graphicsview/LabelGraphicsItem.h
         graphicsview/WidgetGraphicsItem.h
+        graphicsview/PolygonGraphicsItem.h
         graphicsview/AbstractMarbleGraphicsLayout.h
         graphicsview/MarbleGraphicsGridLayout.h
    )
@@ -24,6 +25,7 @@ SET( graphicsview_SRCS
         graphicsview/FrameGraphicsItem.cpp
         graphicsview/LabelGraphicsItem.cpp
         graphicsview/WidgetGraphicsItem.cpp
+        graphicsview/PolygonGraphicsItem.cpp
         graphicsview/AbstractMarbleGraphicsLayout.cpp
         graphicsview/MarbleGraphicsGridLayout.cpp
    )
