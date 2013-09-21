@@ -22,7 +22,9 @@
 #include "DialogConfigurationInterface.h"
 #include "RenderPlugin.h"
 #include "GeoDataCoordinates.h"
+#include "GeoDataPoint.h"
 #include "GeoDataLatLonAltBox.h"
+#include "GeoDataStyle.h"
 
 namespace Ui
 {
@@ -31,6 +33,9 @@ namespace Ui
 
 namespace Marble
 {
+
+class MarbleGraphicsItem;
+class PolygonGraphicsItem;
 
 class PositionMarker  : public RenderPlugin, public DialogConfigurationInterface
 {
@@ -126,13 +131,22 @@ class PositionMarker  : public RenderPlugin, public DialogConfigurationInterface
     QColor              m_accuracyColor;
     QColor              m_trailColor;
     qreal               m_heading;
-    QVector<GeoDataCoordinates> m_trail;
     static const int    sm_numTrailPoints = 6;
     bool                m_showTrail;
 
     static const int sm_defaultSizeStep;
     static const int sm_numResizeSteps;
     static const float sm_resizeSteps[];
+
+    class ItemHelper;
+    GeoDataStyle                m_cursorStyle;
+    GeoDataStyle                m_accuracyStyle;
+    GeoDataStyle                m_trailStyle;
+    ItemHelper                 *m_customCursorItem;
+    ItemHelper                 *m_accuracyItem;
+    PolygonGraphicsItem        *m_arrowItem;
+    GeoDataPoint                m_cursorPoint;
+    QVector<ItemHelper*>        m_trailItems;
 };
 
 }

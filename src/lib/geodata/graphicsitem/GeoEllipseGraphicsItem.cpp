@@ -117,11 +117,7 @@ void GeoEllipseGraphicsItem::paint( GeoPainter* painter ) const
             painter->setPen( currentPen );
 
         if ( style()->lineStyle().background() ) {
-            QBrush brush = painter->background();
-            brush.setColor( style()->polyStyle().paintedColor() );
-            painter->setBackground( brush );
-
-            painter->setBackgroundMode( Qt::OpaqueMode );
+            painter->setBrush( style()->lineStyle().paintedColor() );
         }
     }
 
